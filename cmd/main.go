@@ -2,6 +2,7 @@ package main
 
 import (
 	"gostore/config"
+	"gostore/internal/models"
 	"gostore/internal/router"
 	"log"
 
@@ -19,6 +20,14 @@ func main() {
 	db := config.ConnectDatabase()
 
 	db.AutoMigrate(
+		&models.User{},
+		&models.CustomerDetail{},
+		&models.Product{},
+		models.ProductCategory{},
+		&models.Cart{},
+		&models.CartItem{},
+		&models.Transaction{},
+		&models.TransactionItem{},
 		
 	)
 
