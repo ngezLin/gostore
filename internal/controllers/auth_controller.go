@@ -6,87 +6,108 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	"gostore/config"
+	"golang.org/x/crypto/bcrypt"
+
 	"gostore/internal/models"
 	"gostore/pkg/utils"
 )
 
-type AuthController struct {
-	DB *gorm.DB
+// Register handler — supports all roles during development
+func CustomerRegister(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var input models.User
+
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Check if user already exists
+		var existing models.User
+		if err := db.Where("email = ?", input.Email).First(&existing).Error; err == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
+			return
+		}
+
+		// Hash the password
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+			return
+		}
+
+		user := models.User{
+			Name:     input.Name,
+			Email:    input.Email,
+			Password: string(hashedPassword),
+			Address:  input.Address,
+			Phone:    input.Phone,
+			Role:     input.Role,
+		}
+
+		if err := db.Create(&user).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+			return
+		}
+
+		// If customer, create associated detail
+		if user.Role == "customer" {
+			customerDetail := models.CustomerDetail{
+				UserID:      user.ID,
+				UserBalance: 0,
+			}
+			if err := db.Create(&customerDetail).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create customer detail"})
+				return
+			}
+		}
+
+		c.JSON(http.StatusCreated, gin.H{"message": "user registered successfully"})
+	}
 }
 
-func NewAuthController(db *gorm.DB) *AuthController {
-	return &AuthController{DB: db}
-}
+// Login handler
+func Login(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var input struct {
+			Email    string `json:"email"`
+			Password string `json:"password"`
+		}
 
-func (ac *AuthController) Register(c *gin.Context) {
-	var input struct {
-		Name     string `json:"name" binding:"required"`
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required"`
-		Address  string `json:"address" binding:"required"`
-		Phone    string `json:"phone" binding:"required"`
-		Role     string `json:"role" binding:"required,oneof=admin customer courier"`
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Find user
+		var user models.User
+		if err := db.Where("email = ?", input.Email).First(&user).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+			return
+		}
+
+		// Compare password
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+			return
+		}
+
+		// Generate token
+		token, err := utils.GenerateJWT(user.ID, user.Role)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message": `Login successful`,
+			"token": token,
+			"user": gin.H{
+				"id":    user.ID,
+				"name":  user.Name,
+				"email": user.Email,
+				"role":  user.Role,
+			},
+		})
 	}
-
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	hashedPassword, _ := utils.HashPassword(input.Password)
-	user := models.User{
-		Name:     input.Name,
-		Email:    input.Email,
-		Password: hashedPassword,
-		Address:  input.Address,
-		Phone:    input.Phone,
-		Role:     input.Role,
-	}
-
-	if err := ac.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"message": "user registered successfully"})
-}
-
-func (ac *AuthController) Login(c *gin.Context) {
-	var input struct {
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required"`
-	}
-
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	var user models.User
-	if err := ac.DB.First(&user, "email = ?", input.Email).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
-		return
-	}
-
-	if !utils.CheckPasswordHash(input.Password, user.Password) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
-		return
-	}
-
-	token, _ := config.GenerateJWT(user.ID, user.Role)
-
-	c.JSON(http.StatusOK, gin.H{"token": token})
-}
-
-func (ac *AuthController) Profile(c *gin.Context) {
-	user, exists := c.Get("user")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"user": user,
-	})
 }

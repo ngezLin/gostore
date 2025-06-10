@@ -24,8 +24,6 @@ func main() {
 		&models.CustomerDetail{},
 		&models.Product{},
 		models.ProductCategory{},
-		&models.Cart{},
-		&models.CartItem{},
 		&models.Transaction{},
 		&models.TransactionItem{},
 		

@@ -1,42 +1,43 @@
 package router
 
 import (
-	"gostore/internal/controllers"
-	"gostore/internal/middlewares"
-
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	"gostore/internal/controllers"
+	"gostore/internal/middlewares"
 )
 
 func SetupRoutes(r *gin.Engine, db *gorm.DB) {
-	authController := controllers.NewAuthController(db)
-
-	r.POST("/register", authController.Register)
-	r.POST("/login", authController.Login)
-
 	api := r.Group("/api")
-	api.Use(middlewares.AuthMiddleware())
 
-	api.GET("/me", authController.Profile)
-	
-	// Admin-only routes
-	adminRoutes := api.Group("/admin")
-	adminRoutes.Use(middlewares.RoleMiddleware("admin"))
-	{
-		// TODO: add product/category CRUD
-	}
+	// AUTH
+	auth := api.Group("/auth")
+	auth.POST("/register", controllers.CustomerRegister(db))
+	auth.POST("/login", controllers.Login(db))
 
-	// Customer-only routes
-	customerRoutes := api.Group("/customer")
-	customerRoutes.Use(middlewares.RoleMiddleware("customer"))
-	{
-		// TODO: add cart, checkout
-	}
+	// PROTECTED ROUTES
+	protected := api.Group("/")
+	protected.Use(middlewares.AuthMiddleware(db))
 
-	// Courier-only routes
-	courierRoutes := api.Group("/courier")
-	courierRoutes.Use(middlewares.RoleMiddleware("courier"))
-	{
-		// TODO: add transaction delivery status update
-	}
+	// Test route to get current user
+	protected.GET("/me", func(c *gin.Context) {
+		user, _ := c.Get("user")
+		c.JSON(200, gin.H{"user": user})
+	})
+
+	// ADMIN ONLY (optional)
+	// admin := protected.Group("/admin")
+	// admin.Use(middlewares.RoleMiddleware("admin"))
+	// admin.GET("/dashboard", ...)
+
+	// CUSTOMER ONLY (optional)
+	// customer := protected.Group("/customer")
+	// customer.Use(middlewares.RoleMiddleware("customer"))
+	// customer.GET("/transactions", ...)
+
+	// COURIER ONLY (optional)
+	// courier := protected.Group("/courier")
+	// courier.Use(middlewares.RoleMiddleware("courier"))
+	// courier.GET("/deliveries", ...)
 }

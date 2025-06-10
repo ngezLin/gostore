@@ -11,6 +11,3 @@ type User struct {
 	Phone string `json:"phone"`
 	Role string `json:"role" gorm:"type:ENUM('admin', 'customer', 'courier')"`
 }
-
-//tambah enum untuk role (admin, user, courier) 
-//tambah validasi not null untuk semua field

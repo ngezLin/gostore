@@ -4,15 +4,14 @@ import "gorm.io/gorm"
 
 type Transaction struct {
 	gorm.Model
-	CustomerID uint    `gorm:"not null"` // FK to users.id
-	Customer   User    `gorm:"foreignKey:CustomerID"`
+	CustomerID uint   `gorm:"not null"`
+	Customer   User   `gorm:"foreignKey:CustomerID"`
 
-	CourierID  *uint   // Nullable — assigned later
-	Courier    *User   `gorm:"foreignKey:CourierID"`
+	CourierID *uint
+	Courier   *User `gorm:"foreignKey:CourierID"`
 
-	TotalAmount float64 `gorm:"not null"`
+	TotalAmount float64 `gorm:"not null;default:0"`
+	Status      string  `gorm:"type:ENUM('cart', 'processing', 'delivering', 'arrived');default:'cart'"`
 
-	Status string `gorm:"type:ENUM('processing', 'delivering', 'arrived');default:'processing'"`
-
-	TransactionItems []TransactionItem `gorm:"foreignKey:TransactionID"`
+	Items []TransactionItem `gorm:"foreignKey:TransactionID"`
 }

@@ -1,15 +1,21 @@
 package utils
 
 import (
-	"golang.org/x/crypto/bcrypt"
+	"time"
+
+	"gostore/config"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
-func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	return string(bytes), err
-}
+func GenerateJWT(userID uint, role string) (string, error) {
+	claims := jwt.MapClaims{
+		"user_id": userID,
+		"role":    role,
+		"exp":     time.Now().Add(config.GetJWTExpirationDuration()).Unix(),
+		"iat":     time.Now().Unix(),
+	}
 
-func CheckPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(config.GetJWTSecret())
 }
