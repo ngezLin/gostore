@@ -8,5 +8,5 @@ type Product struct {
 	Price             float64         `json:"price"`
 	Stock             int             `json:"stock"`
 	ProductCategoryID uint            `json:"product_category_id"`
-	Category          ProductCategory `gorm:"foreignKey:ProductCategoryID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	Category          ProductCategory `gorm:"foreignKey:ProductCategoryID" json:"Category"`
 }

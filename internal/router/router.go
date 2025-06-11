@@ -5,39 +5,48 @@ import (
 	"gorm.io/gorm"
 
 	"gostore/internal/controllers"
+	"gostore/internal/controllers/admin"
 	"gostore/internal/middlewares"
 )
 
 func SetupRoutes(r *gin.Engine, db *gorm.DB) {
+	// Base API Group
 	api := r.Group("/api")
 
-	// AUTH
+	// AUTH ROUTES (Public)
 	auth := api.Group("/auth")
-	auth.POST("/register", controllers.CustomerRegister(db))
-	auth.POST("/login", controllers.Login(db))
+	{
+		auth.POST("/register", controllers.CustomerRegister(db))
+		auth.POST("/login", controllers.Login(db))
+	}
 
-	// PROTECTED ROUTES
+	// PROTECTED ROUTES (All authenticated users)
 	protected := api.Group("/")
 	protected.Use(middlewares.AuthMiddleware(db))
+	{
+		// /api/me
+		protected.GET("/me", func(c *gin.Context) {
+			user, _ := c.Get("user")
+			c.JSON(200, gin.H{"user": user})
+		})
+	}
 
-	// Test route to get current user
-	protected.GET("/me", func(c *gin.Context) {
-		user, _ := c.Get("user")
-		c.JSON(200, gin.H{"user": user})
-	})
+	// ADMIN ROUTES (Under /api/admin)
+	adminGroup := api.Group("/admin")
+	adminGroup.Use(middlewares.AuthMiddleware(db), middlewares.RoleMiddleware("admin"))
+	{
+		productController := admin.NewProductController(db)
+		categoryController := admin.NewCategoryController(db)
 
-	// ADMIN ONLY (optional)
-	// admin := protected.Group("/admin")
-	// admin.Use(middlewares.RoleMiddleware("admin"))
-	// admin.GET("/dashboard", ...)
+		adminGroup.POST("/products", productController.CreateProduct)
+		adminGroup.GET("/products", productController.GetAllProducts)
+		adminGroup.PUT("/products/:id", productController.UpdateProduct)
+		adminGroup.DELETE("/products/:id", productController.DeleteProduct)
 
-	// CUSTOMER ONLY (optional)
-	// customer := protected.Group("/customer")
-	// customer.Use(middlewares.RoleMiddleware("customer"))
-	// customer.GET("/transactions", ...)
 
-	// COURIER ONLY (optional)
-	// courier := protected.Group("/courier")
-	// courier.Use(middlewares.RoleMiddleware("courier"))
-	// courier.GET("/deliveries", ...)
+		adminGroup.POST("/categories", categoryController.CreateCategory)
+		adminGroup.GET("/categories", categoryController.GetAllCategories)
+		adminGroup.PUT("/categories/:id", categoryController.UpdateCategory)
+		adminGroup.DELETE("/categories/:id", categoryController.DeleteCategory)
+	}
 }

@@ -4,6 +4,7 @@ import (
 	"gostore/config"
 	"gostore/internal/models"
 	"gostore/internal/router"
+	"gostore/internal/seeders"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -26,8 +27,9 @@ func main() {
 		models.ProductCategory{},
 		&models.Transaction{},
 		&models.TransactionItem{},
-		
 	)
+	//seeders
+	seeders.SeedCategories(db)
 
 	router.SetupRoutes(r, db)
 	r.Run(":8080")
