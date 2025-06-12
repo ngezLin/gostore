@@ -6,6 +6,7 @@ import (
 
 	"gostore/internal/controllers"
 	"gostore/internal/controllers/admin"
+	"gostore/internal/controllers/customer"
 	"gostore/internal/middlewares"
 )
 
@@ -29,6 +30,18 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 			user, _ := c.Get("user")
 			c.JSON(200, gin.H{"user": user})
 		})
+	}
+
+	// CUSTOMER ROUTES (Under /api/customer)
+	customerGroup := api.Group("/customer")
+	customerGroup.Use(middlewares.AuthMiddleware(db), middlewares.RoleMiddleware("customer"))
+	{
+		customerProductController := customer.NewProductController(db)
+		customerDetailController := customer.NewDetailController(db)
+
+		customerGroup.GET("/products", customerProductController.GetAllProducts)
+		customerGroup.GET("/me/detail", customerDetailController.GetCustomerDetail)
+		customerGroup.PUT("/me/detail", customerDetailController.UpdateBalance)
 	}
 
 	// ADMIN ROUTES (Under /api/admin)
