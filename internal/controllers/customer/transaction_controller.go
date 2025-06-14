@@ -41,23 +41,6 @@ func (tc *TransactionController) CreateTransaction(c *gin.Context) {
 	var totalAmount float64
 	var items []models.TransactionItem
 
-	// for _, i := range req.Items {
-	// 	var product models.Product
-	// 	if err := tc.DB.Preload("Category").First(&product, i.ProductID).Error; err != nil {
-	// 		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
-	// 		return
-	// 	}
-
-	// 	subTotal := product.Price * float64(i.Quantity)
-	// 	totalAmount += subTotal
-
-	// 	items = append(items, models.TransactionItem{
-	// 		ProductID: i.ProductID,
-	// 		Quantity:  i.Quantity,
-	// 		SubTotal:  subTotal,
-	// 	})
-	// }
-
 	for _, i := range req.Items {
 		var product models.Product
 		if err := tc.DB.Preload("Category").First(&product, i.ProductID).Error; err != nil {
@@ -133,7 +116,7 @@ func (tc *TransactionController) CreateTransaction(c *gin.Context) {
 		})
 	}
 
-	// Format courier info if available
+	//courier info
 	var courierInfo any
 	if tx.Courier != nil {
 		courierInfo = gin.H{
@@ -142,7 +125,7 @@ func (tc *TransactionController) CreateTransaction(c *gin.Context) {
 		}
 	}
 
-	// Return simplified custom response
+	//response
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Transaction created",
 		"transaction": gin.H{
@@ -156,4 +139,34 @@ func (tc *TransactionController) CreateTransaction(c *gin.Context) {
 			"subtotal": tx.TotalAmount,
 		},
 	})
+}
+
+func (tc *TransactionController) GetAllTransactions(c *gin.Context) {
+	user := c.MustGet("user").(models.User)
+
+	var transactions []models.Transaction
+	if err := tc.DB.Preload("Items.Product").
+		Where("customer_id = ?", user.ID).
+		Order("created_at DESC").
+		Find(&transactions).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch transactions"})
+		return
+	}
+
+	c.JSON(http.StatusOK, transactions)
+}
+
+func (tc *TransactionController) GetTransactionByID(c *gin.Context) {
+	user := c.MustGet("user").(models.User)
+	id := c.Param("id")
+
+	var transaction models.Transaction
+	if err := tc.DB.Preload("Items.Product").
+		Where("id = ? AND customer_id = ?", id, user.ID).
+		First(&transaction).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Transaction not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, transaction)
 }

@@ -44,6 +44,8 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 		customerGroup.PUT("/me/balance", customerDetailController.UpdateBalance)
 		customerGroup.GET("/products", customerProductController.GetAllProducts)
 		customerGroup.POST("/transactions", transactionController.CreateTransaction)
+		customerGroup.GET("/transactions", transactionController.GetAllTransactions)
+		customerGroup.GET("/transactions/:id", transactionController.GetTransactionByID)
 	}
 
 	// ADMIN ROUTES (Under /api/admin)
@@ -57,7 +59,6 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 		adminGroup.GET("/products", productController.GetAllProducts)
 		adminGroup.PUT("/products/:id", productController.UpdateProduct)
 		adminGroup.DELETE("/products/:id", productController.DeleteProduct)
-
 
 		adminGroup.POST("/categories", categoryController.CreateCategory)
 		adminGroup.GET("/categories", categoryController.GetAllCategories)
