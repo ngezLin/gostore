@@ -10,4 +10,5 @@ type User struct {
 	Address string `json:"address"`
 	Phone string `json:"phone"`
 	Role string `json:"role" gorm:"type:ENUM('admin', 'customer', 'courier')"`
+	Balance  float64 `json:"balance"`
 }

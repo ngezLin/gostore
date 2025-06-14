@@ -11,7 +11,7 @@ type Transaction struct {
 	Courier   *User `gorm:"foreignKey:CourierID"`
 
 	TotalAmount float64 `gorm:"not null;default:0"`
-	Status      string  `gorm:"type:ENUM('cart', 'processing', 'delivering', 'arrived');default:'cart'"`
+	Status      string  `gorm:"type:ENUM('processing', 'delivering', 'arrived')"`
 
 	Items []TransactionItem `gorm:"foreignKey:TransactionID"`
 }

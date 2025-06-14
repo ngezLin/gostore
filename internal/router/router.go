@@ -38,10 +38,12 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 	{
 		customerProductController := customer.NewProductController(db)
 		customerDetailController := customer.NewDetailController(db)
+		transactionController := customer.NewTransactionController(db)
 
 		customerGroup.GET("/products", customerProductController.GetAllProducts)
 		customerGroup.GET("/me/detail", customerDetailController.GetCustomerDetail)
 		customerGroup.PUT("/me/detail", customerDetailController.UpdateBalance)
+		customerGroup.POST("/transactions", transactionController.CreateTransaction)
 	}
 
 	// ADMIN ROUTES (Under /api/admin)
