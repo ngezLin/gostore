@@ -51,17 +51,6 @@ func CustomerRegister(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// If customer, create associated detail
-		if user.Role == "customer" {
-			customerDetail := models.CustomerDetail{
-				UserID:      user.ID,
-				UserBalance: 0,
-			}
-			if err := db.Create(&customerDetail).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create customer detail"})
-				return
-			}
-		}
-
 		c.JSON(http.StatusCreated, gin.H{"message": "user registered successfully"})
 	}
 }

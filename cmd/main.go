@@ -20,16 +20,19 @@ func main() {
 	r := gin.Default()
 	db := config.ConnectDatabase()
 
+	//migrate
 	db.AutoMigrate(
 		&models.User{},
-		&models.CustomerDetail{},
 		&models.Product{},
-		models.ProductCategory{},
+		&models.ProductCategory{},
 		&models.Transaction{},
 		&models.TransactionItem{},
 	)
 	//seeders
 	seeders.SeedCategories(db)
+	seeders.SeedUsers(db)
+	seeders.SeedProducts(db)
+
 
 	router.SetupRoutes(r, db)
 	r.Run(":8080")

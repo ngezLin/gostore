@@ -6,6 +6,7 @@ import (
 
 	"gostore/internal/controllers"
 	"gostore/internal/controllers/admin"
+	"gostore/internal/controllers/courier"
 	"gostore/internal/controllers/customer"
 	"gostore/internal/middlewares"
 )
@@ -37,12 +38,9 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 	customerGroup.Use(middlewares.AuthMiddleware(db), middlewares.RoleMiddleware("customer"))
 	{
 		customerProductController := customer.NewProductController(db)
-		customerDetailController := customer.NewDetailController(db)
 		transactionController := customer.NewTransactionController(db)
 
 		customerGroup.GET("/products", customerProductController.GetAllProducts)
-		customerGroup.GET("/me/detail", customerDetailController.GetCustomerDetail)
-		customerGroup.PUT("/me/detail", customerDetailController.UpdateBalance)
 		customerGroup.POST("/transactions", transactionController.CreateTransaction)
 	}
 
@@ -64,4 +62,13 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 		adminGroup.PUT("/categories/:id", categoryController.UpdateCategory)
 		adminGroup.DELETE("/categories/:id", categoryController.DeleteCategory)
 	}
+
+	courierGroup := api.Group("/courier")
+	courierGroup.Use(middlewares.AuthMiddleware(db), middlewares.RoleMiddleware("courier"))
+	{
+		shippingController := courier.NewShippingController(db)
+		courierGroup.PUT("/transactions/:id/accept", shippingController.AcceptTransaction)
+		courierGroup.PUT("/transactions/:id/arrived", shippingController.MarkAsArrived)
+	}
+
 }
