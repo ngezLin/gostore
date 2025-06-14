@@ -32,6 +32,8 @@ func main() {
 	seeders.SeedCategories(db)
 	seeders.SeedUsers(db)
 	seeders.SeedProducts(db)
+	seeders.SeedTransactions(db)
+	seeders.SeedTransactionItems(db)
 
 
 	router.SetupRoutes(r, db)
